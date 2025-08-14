@@ -9,3 +9,7 @@ sed -i '56d' apache-tomcat-11.0.10/conf/tomcat-users.xml
 sed -i '21d' apache-tomcat-11.0.10/webapps/manager/META-INF/context.xml
 sed -i '22d' apache-tomcat-11.0.10/webapps/manager/META-INF/context.xml
 sh apache-tomcat-11.0.10/bin/startup.sh
+
+
+# When you visit Tomcat website and select Manager App, then you need to put UserName & Password.
+# echo "user=tomcat & password=root123"
