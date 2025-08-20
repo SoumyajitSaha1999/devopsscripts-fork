@@ -1,0 +1,36 @@
+#First Dockerfile Task for application Deployment
+
+********vi Dockerfile**********
+FROM ubuntu
+RUN apt update
+RUN apt install apache2 -y
+RUN apt install apache2-utils -y
+RUN apt clean
+COPY website/ /var/www/html/
+RUN service apache2 restart
+EXPOSE 80
+CMD ["/usr/sbin/apachectl", "-D", "FOREGROUND"]
+
+
+
+#Tomcat installation on Container
+
+*******vi Dockerfile*******
+# Use the official Tomcat image as the base
+FROM tomcat:latest
+
+# Set environment variables (optional)
+ENV CATALINA_HOME /usr/local/tomcat
+ENV PATH $CATALINA_HOME/bin:$PATH
+
+# Remove default webapps (optional: keeps Tomcat clean)
+RUN rm -rf $CATALINA_HOME/webapps/*
+
+# Copy your application WAR file into the Tomcat webapps directory
+COPY jenkins.war $CATALINA_HOME/webapps/jenkins.war
+ 
+# Expose Tomcat's default HTTP port
+EXPOSE 8080
+
+# Start Tomcat
+CMD ["catalina.sh", "run"]
