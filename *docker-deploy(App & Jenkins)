@@ -1,6 +1,9 @@
-#First Dockerfile Task for application Deployment
+#Dockerfile for application Deployment
 
-********vi Dockerfile**********
+1. Git install
+2. Git clone(website-fork)
+
+3. <-------vi Dockerfile------->
 FROM ubuntu
 RUN apt update
 RUN apt install apache2 -y
@@ -13,9 +16,13 @@ CMD ["/usr/sbin/apachectl", "-D", "FOREGROUND"]
 
 
 
-#Tomcat installation on Container
 
-*******vi Dockerfile*******
+#Tomcat installation on Container and deploy Jenkins application
+
+1. Download Jenkins.war from internet(search Jenkins.war --> 2.524)
+2. wget https://updates.jenkins.io/download/war/2.524/jenkins.war
+
+3. <-------vi Dockerfile------->
 # Use the official Tomcat image as the base
 FROM tomcat:latest
 
