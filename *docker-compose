@@ -1,0 +1,128 @@
+***************************
+Docker Compose Installation
+***************************
+
+<--------vi dockercompose.sh-------->
+ 
+sudo dnf install libxcrypt-compat -y
+sudo curl -L "https://github.com/docker/compose/releases/download/1.29.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+ls /usr/local/bin/
+sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+docker-compose version
+ 
+**sh dockercompose.sh
+
+
+
+
+
+
+<-------Docker Swarm with Jenkins Project------->
+
+vi docker-compose.yml
+
+version: '3.8'
+services:
+  internetbanking:
+    image: trainerreyaz/ib-image:latest
+    ports:
+      - "81:80"
+    deploy:
+      replicas: 3
+    volumes:
+      - /var/lib/internetbanking
+  mobilebanking:
+    image: trainerreyaz/mb-image:latest
+    ports:
+      - "82:80"
+    deploy:
+      replicas: 3
+    volumes:
+      - /var/lib/mobilebanking
+  insurance:
+    image: trainerreyaz/insurance-image:latest
+    ports:
+      - "83:80"
+    deploy:
+      replicas: 3
+    volumes:
+      - /var/lib/insurance
+  loan:
+    image: trainerreyaz/loans-image:latest
+    ports:
+      - "84:80"
+    deploy:
+      replicas: 3
+    volumes:
+      - /var/lib/loan
+
+
+<-------hdfc-bank------->
+
+vi docker-compose.yml
+
+version: '3.8'
+services:
+  internetbanking:
+    image: internetbanking:v1
+    ports:
+      - "81:80"
+  mobilebanking:
+    image: mobilebanking:v1
+    ports:
+      - "82:80"
+  insurance:
+    image: insurance:v1
+    ports:
+      - "83:80"
+  loan:
+    image: loans:v1
+    ports:
+      - "84:80"
+
+
+
+<-------Docker Swarm - Managing Secrets - postgres------->
+
+vi docker-compose.yml
+
+version: '3.8'
+ 
+services:
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: webuser
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      POSTGRES_DB: webdatabase
+    secrets:
+      - db_password
+
+  adminer:
+    image: adminer:latest
+    ports:
+     - 8080:8080
+
+secrets:
+  db_password:
+    file: db_password.txt
+
+**docker stack deploy --compose-file docker-compose.yml myapp
+
+
+
+<-------Docker Swarm global service------->
+
+vi docker-compose.yml
+
+version: "3.8"
+services:
+  global-nginx:
+    image: nginx
+    deploy:
+      mode: global
+    ports:
+      - "80:80"
+
+**docker stack deploy -c docker-compose.yml global-stack
