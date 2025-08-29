@@ -1,0 +1,83 @@
+Launch Amazon Linux 2023 , t2.micro/t3.micro
+Attach a IAM ROLE called K8S-Admin TE=EC2, Permisions = admin
+
+### Kubectl & Kops needs to identify by our operating system. That's why passed the variable to bashrc (bashrc is a auto-start file in Linux)
+<-------vi .bashrc------->
+export PATH=$PATH:/usr/local/bin/  <--- Put the line anywhere in bashrc file. Anywhere is fine
+### Compile the bashrc file
+source .bashrc
+
+### The entire K8S Cluster manage by Kubectl. No need to Login Master & Worker node. But just in case if you want to login Master &Worker node, for that we need to
+### have PEM file attach
+### To generate SSH key
+ssh-keygen
+
+### Copying the key in my-keypair.pub path
+cp /root/.ssh/id_rsa.pub my-keypair.pub
+
+### Give full permissions
+chmod 777 my-keypair.pub
+cat my-keypair.pub
+
+<-------vi kops.sh------->
+
+### Install Kubectl
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+
+### Install Kops
+wget https://github.com/kubernetes/kops/releases/download/v1.32.0/kops-linux-amd64
+
+### Read Permission for Kubectl & Kops
+chmod +x kops-linux-amd64 kubectl
+
+### Move the Kubectl in /usr/local/bin/kubectl directory
+mv kubectl /usr/local/bin/kubectl
+
+### Move the Kops in /usr/local/bin/kubectl directory
+mv kops-linux-amd64 /usr/local/bin/kops
+
+### We are storing all STATE CLUSTER in S3 bucket for safe side
+aws s3api create-bucket --bucket soumyajit-kops-testbkt1433.k8s.local --region ap-south-1 --create-bucket-configuration LocationConstraint=ap-south-1
+
+### Enabling the Versioning
+aws s3api put-bucket-versioning --bucket soumyajit-kops-testbkt1433.k8s.local --region ap-south-1 --versioning-configuration Status=Enabled
+
+### To tell the K8S cluster where is our STATE STORE
+export KOPS_STATE_STORE=s3://soumyajit-kops-testbkt1433.k8s.local
+
+### Cluster creation
+kops create cluster --name=soumya.k8s.local --zones=ap-south-1a --control-plane-count=1 --control-plane-size=t3.medium --node-count=2 --node-size=t3.small --node-volume-size=20 --control-plane-volume-size=20 --ssh-public-key=my-keypair.pub --image=ami-02d26659fd82cf299 --networking=calico
+
+### Update the K8S cluster with a user called admin                           
+kops update cluster --name soumya.k8s.local --yes --admin               
+
+
+wq!
+
+***ami-02d26659fd82cf299:- ubuntu ami id(it can be Ubuntu or Amazon Linux 2023)
+***networking=calico:- It's very faster to communicate betwwen PODS
+
+### Export is already present in script. But sometime it's not working. That's why we run the command again
+export KOPS_STATE_STORE=s3://soumyajit-kops-testbkt1433.k8s.local
+kops validate cluster --wait 10m
+
+
+-- kops get cluster
+
+-- kubectl get nodes/no
+
+-- kubectl get nodes -o wide
+
+
+### Copy the Suggestions
+Suggestions:
+ * list clusters with: kops get cluster
+ * edit this cluster with: kops edit cluster reyaz.k8s.local
+ * edit your node instance group: kops edit ig --name=reyaz.k8s.local nodes-ap-south-1a
+ * edit your control-plane instance group: kops edit ig --name=reyaz.k8s.local control-plane-ap-south-1a
+
+
+
+### N.B: Do not terminate any EC2 Instance in AWS. To delete everything just run the command. Automatically it will delete everything that it has created
+kops delete cluster --name soumya.k8s.local --yes
+
