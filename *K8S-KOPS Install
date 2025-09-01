@@ -17,6 +17,7 @@ cp /root/.ssh/id_rsa.pub my-keypair.pub
 
 ### Give full permissions
 chmod 777 my-keypair.pub
+ls
 cat my-keypair.pub
 
 <-------vi kops.sh------->
@@ -53,6 +54,8 @@ kops update cluster --name soumya.k8s.local --yes --admin
 
 
 wq!
+
+sh kops.sh
 
 ***ami-02d26659fd82cf299:- ubuntu ami id(it can be Ubuntu or Amazon Linux 2023)
 ***networking=calico:- It's very faster to communicate betwwen PODS
