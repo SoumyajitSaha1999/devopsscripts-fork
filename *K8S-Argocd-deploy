@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mobilebanking-rs
+  labels:
+    app: bank
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: bank
+  template:
+    metadata:
+      labels:
+        app: bank
+    spec:
+      containers:
+      - name: cont1
+        image: reyadocker/internetbankingrepo:latest
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mobilebankingservice
+spec:
+  type: LoadBalancer
+  selector:
+    app: bank
+  ports:
+    - port: 80
+      nodeport: 31433
