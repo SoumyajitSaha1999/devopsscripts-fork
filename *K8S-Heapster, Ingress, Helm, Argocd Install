@@ -6,5 +6,9 @@ kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/late
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.3.0/deploy/static/provider/cloud/deploy.yaml
 
 
+### Helm install
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+
+
 ### Argocd install using HELM
 helm repo add argo https://argoproj.github.io/argo-helm
