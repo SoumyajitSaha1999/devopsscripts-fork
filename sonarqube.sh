@@ -8,7 +8,7 @@ chown sonar:sonar sonarqube-8.9.6.50800 -R
 chmod 777 sonarqube-8.9.6.50800 -R
 su - sonar
 # use the below command manually after installation
-#sh /opt/sonarqube-8.9.6.50800/bin/linux-x86-64/sonar.sh start
+sh /opt/sonarqube-8.9.6.50800/bin/linux-x86-64/sonar.sh start
 #echo "user=admin & password=admin"
 
 #For sonar PIPELINE SYNTAX is not working in JENKINS. So, the code is -->
