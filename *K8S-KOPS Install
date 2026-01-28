@@ -47,7 +47,7 @@ aws s3api put-bucket-versioning --bucket soumyajit-kops-testbkt1433.k8s.local --
 export KOPS_STATE_STORE=s3://soumyajit-kops-testbkt1433.k8s.local
 
 ### Cluster creation
-kops create cluster --name=soumya.k8s.local --zones=ap-south-1a --control-plane-count=1 --control-plane-size=t3.medium --node-count=2 --node-size=t3.small --node-volume-size=20 --control-plane-volume-size=20 --ssh-public-key=my-keypair.pub --image=ami-0b6c6ebed2801a5cb --networking=calico
+kops create cluster --name=soumya.k8s.local --zones=ap-south-1a --control-plane-count=1 --control-plane-size=t3.medium --node-count=2 --node-size=t3.small --node-volume-size=20 --control-plane-volume-size=20 --ssh-public-key=my-keypair.pub --image=ami-0c398cb65a93047f2 --networking=calico
 
 ### Update the K8S cluster with a user called admin                           
 kops update cluster --name soumya.k8s.local --yes --admin               
