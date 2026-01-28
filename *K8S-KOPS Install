@@ -47,7 +47,7 @@ aws s3api put-bucket-versioning --bucket soumyajit-kops-testbkt1433.k8s.local --
 export KOPS_STATE_STORE=s3://soumyajit-kops-testbkt1433.k8s.local
 
 ### Cluster creation
-kops create cluster --name=soumya.k8s.local --zones=ap-south-1a --control-plane-count=1 --control-plane-size=t3.medium --node-count=2 --node-size=t3.small --node-volume-size=20 --control-plane-volume-size=20 --ssh-public-key=my-keypair.pub --image=ami-02d26659fd82cf299 --networking=calico
+kops create cluster --name=soumya.k8s.local --zones=ap-south-1a --control-plane-count=1 --control-plane-size=t3.medium --node-count=2 --node-size=t3.small --node-volume-size=20 --control-plane-volume-size=20 --ssh-public-key=my-keypair.pub --image=ami-0b6c6ebed2801a5cb --networking=calico
 
 ### Update the K8S cluster with a user called admin                           
 kops update cluster --name soumya.k8s.local --yes --admin               
@@ -57,7 +57,7 @@ wq!
 
 sh kops.sh
 
-***ami-02d26659fd82cf299:- ubuntu ami id(it can be Ubuntu or Amazon Linux 2023)
+***ami-0b6c6ebed2801a5cb:- ubuntu ami id(it can be Ubuntu or Amazon Linux 2023)
 ***networking=calico:- It's very faster to communicate betwwen PODS
 
 ### Export is already present in script. But sometime it's not working. That's why we run the command again
