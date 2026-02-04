@@ -1,0 +1,68 @@
+K8s Dashboard Set Up: 
+=====================
+
+1. Launch ec2 instance with t2.micro and set up kops  
+
+2. Deploy Kubernetes Dashboard (Installation K8s Dashboard) 
+Using a command first install Namespaces, Deployments (for the dashboard and metrics), Services (NodePort type), RBAC roles  and bindings, Secrets 
+
+--> kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml 
+
+3. To verify installation you can use this command 
+
+--> kubectl get pods -n kubernetes-dashboard 
+--> kubectl get svc -n kubernetes-dashboard 
+
+
+4. To confirms the Docker image version (Image: kubernetesui/dashboard: v2.7.0) being used for the Kubernetes Dashboard use a  command 
+
+--> kubectl describe pod -n kubernetes-dashboard -l k8s-app=kubernetes-dashboard | grep "Image:" 
+ 
+5. Create a Service Account for Dashboard Access
+ 
+--> kubectl create serviceaccount dashboard-admin -n kubernetes-dashboard 
+
+6. Grants cluster-wide administrative permissions to the dashboard-admin ServiceAccount & allows it to perform actions on the  entire cluster. cluster roll binding
+
+--> kubectl create clusterrolebinding dashboard-admin --clusterrole=cluster-admin --serviceaccount=kubernetes-dashboard:dashboard-admin 
+
+***kubectl get clusterrolebinding dashboard-admin -o yaml
+***kubectl delete clusterrolebinding dashboard-admin
+ 
+7. Retrieve the authentication token for the ServiceAccount
+  
+--> kubectl get secret -n kubernetes-dashboard $(kubectl get sa -n kubernetes-dashboard dashboard-admin -o  jsonpath="{.secrets[0].name}") -o jsonpath="{.data.token}" | base64 --decode 
+
+8. Expose the Kubernetes Dashboard 
+Note: By default, the Dashboard is only accessible inside the cluster. To access it from your machine, run:
+
+--> kubectl edit svc kubernetes-dashboard -n kubernetes-dashboard 
+    (Here you need to change TYPE. From ClusterIP to LoadBalencer)
+
+9. Lists-ing out all the services running in the kubernetes-dashboard namespace.
+ 
+--> kubectl get svc -n kubernetes-dashboard 
+    (Here you get the LoadBalencer URL)
+
+access it:- https://<LoadBalencer URL>
+                |
+   (here k8s can only run on https, it doesn't support http)
+
+10. there are 2 ways to signing in to k8s dashboard 
+    - using token 
+    - using kubeconfig file
+  
+We use token. for that run the below command
+
+--> kubectl create token dashboard-admin -n kubernetes-dashboard
+
+*** Just take the token & login to k8s dashboard
+
+
+
+
+
+
+
+
+
