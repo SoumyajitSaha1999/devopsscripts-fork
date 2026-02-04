@@ -77,3 +77,20 @@ EOF
 # ✅ Step 10: Test access (optional)
 echo -e "\n🔍 Try testing access using:"
 echo "kubectl --context=${USER_NAME}-context get pods"
+
+
+Run the script and then run few commands
+
+--> kubectl config current-context // soumya.k8s.local
+--> kubectl run nginx --image=nginx -n dev
+--> kubectl --context=dev-user-context get pods //will work
+--> kubectl --context=dev-user-context delete pod nginx //will not work
+
+If you want to delete everything in one shot --> 
+
+kubectl delete rolebinding dev-user-binding -n dev
+kubectl delete role pod-reader -n dev
+kubectl delete csr dev-user
+kubectl config delete-context dev-user-context
+kubectl config delete-user dev-user
+rm -f dev-user.key dev-user.crt dev-user.csr
