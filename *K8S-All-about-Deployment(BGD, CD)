@@ -1,0 +1,225 @@
+*****************************
+Blue Green Deployment Project
+*****************************
+
+Here label , version: blue
+
+<------vi blue.yml------>
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app-blue
+  labels:
+    app: my-app
+    version: blue
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+      version: blue
+  template:
+    metadata:
+      labels: 
+        app: my-app
+        version: blue
+    spec:
+      containers:
+      - name: my-app
+        image: trainerreyaz/ib-image:latest
+        ports:
+        - containerPort: 80
+
+--> kubectl create -f blue.yml
+
+
+<------vi blue-service.yml------>
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app-service
+spec:
+  selector:
+    app: my-app
+    version: blue
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: LoadBalancer
+
+--> kubectl create -f blue-service.yml
+--> kubectl get service  [Wait for 2 mins. it shows ELB internet banking. Access it via browser.]
+
+
+**Now keep v2 deployment ready. Here label , version: green
+
+<------vi green.yml------>
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app-green
+  labels:
+    app: my-app
+    version: green
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+      version: green
+  template:
+    metadata:
+      labels:
+        app: my-app
+        version: green
+    spec:
+      containers:
+      - name: my-app
+        image: trainerreyaz/mb-image:latest
+        ports:
+        - containerPort: 80
+
+--> kubectl create -f green.yml  [Keep the v2 application ready]
+
+
+**Now Switch. Edit blue-service.yml  and change blue to green. Traffic will redirect from blue pods to green
+
+<------vi blue-service.yml------>
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app-service
+spec:
+  selector:
+    app: my-app
+    version: green
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: LoadBalancer
+
+--> kubectl apply -f blue-service.yml
+
+**Refresh ELB, we get mobile banking
+
+
+
+
+**************************
+Cannary Deployment Project
+**************************
+
+--> kubectl create namespace canary-demo [Create a separate namespace if required]
+--> kubectl config set-context --current --namespace=canary-demo
+--> kubectl get pods  [no pods]
+
+<------vi nginx-v1.yml------>
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-v1
+  labels:
+    app: nginx
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: nginx
+        version: v1
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.19
+        ports:
+        - containerPort: 80
+
+--> kubectl apply -f nginx-v1.yml
+
+
+<------vi nginx-v2.yml------>
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-v2
+  labels:
+    app: nginx
+    version: v2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+      version: v2
+  template:
+    metadata:
+      labels:
+        app: nginx
+        version: v2
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.21
+        ports:
+        - containerPort: 80
+
+--> kubectl apply -f nginx-v2.yml
+
+
+<------vi nginx-service.yml------>
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "classic"
+spec:
+  type: LoadBalancer
+  selector:
+    app: nginx
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+
+--> kubectl apply -f nginx-service.yml
+
+To get ELB URL ----->
+--> kubectl get svc nginx-service
+
+--> kubectl get pods  [4 pods --> 3 v1, 1 v2]
+
+**Increasing v2 replicas & Reducing v1 replicas
+
+--> kubectl scale deployment nginx-v2 --replicas=2
+
+--> kubectl scale deployment nginx-v1 --replicas=1
+
+--> kubectl scale deployment nginx-v1 --replicas=0 [This gradually shifts more traffic to v2]
+
+--> kubectl get pods [now has only v2 pods]
+
+
+
+
+
+
+
+
+
+
+
