@@ -32,6 +32,7 @@ Username : admin (By Default)
 Password : R-1f8…48
 
 → Press Create Application
+
 Application Name : bankapp (it can be anything)
 Project Name : default
 Sync Policy : Automatic
@@ -45,3 +46,6 @@ Cluster URL : https://kubernetes.default.svc
 Namespace : default
 
 → Press Create
+
+kubectl get pods
+kubectl get svc [You will get the LoadBalancer URL]
