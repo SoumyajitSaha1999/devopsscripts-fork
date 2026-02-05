@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
       - name: my-app
-        image: trainerreyaz/ib-image:latest
+        image: soumya824/internetbanking-dh-image
         ports:
         - containerPort: 80
 
@@ -79,7 +79,7 @@ spec:
     spec:
       containers:
       - name: my-app
-        image: trainerreyaz/mb-image:latest
+        image: soumya824/mobilebanking-dh-image
         ports:
         - containerPort: 80
 
