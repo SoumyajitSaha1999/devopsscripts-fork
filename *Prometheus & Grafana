@@ -1,0 +1,338 @@
+*********************************
+Prometheus and Grafana-K8SCluster
+*********************************
+
+###Install HELM
+
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+chmod 700 get_helm.sh
+./get_helm.sh
+helm version
+
+###Install Metric Server
+
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/high-availability-1.21+.yaml
+
+###Steps to Install Prometheus - First add helm repositories 
+
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts 
+helm repo add grafana https://grafana.github.io/helm-charts
+
+###UPDATE HELM CHART REPOS:
+
+helm repo update
+helm repo list
+
+###CREATE PROMETHEUS NAMESPACE:
+
+kubectl get ns
+kubectl create namespace prometheus
+kubectl get ns
+
+###INSTALL PROMETHEUS:
+
+helm install prometheus prometheus-community/prometheus --namespace prometheus --set alertmanager.persistentVolume.storageClass="gp2" --set server.persistentVolume.storageClass="gp2"
+
+kubectl get pods -n prometheus
+kubectl get all -n prometheus
+
+###Create Namespace Grafana
+
+kubectl create namespace grafana
+
+###Install Grafana
+
+helm install grafana grafana/grafana --namespace grafana --set persistence.storageClassName="gp2" --set persistence.enabled=true --set adminPassword='Root123456' --set service.type=LoadBalancer (We need to access Grafana. For that reason service.type is LoadBalancer)
+
+kubectl get pods -n grafana
+kubectl get service -n grafana [You will get Grafana LoadBalancer URL]
+
+***Copy the URL and paste in browser 
+username:admin, password = Root123456
+
+***Go to Grafana Dashboard --> Add Data Source --> Select Prometheus
+Prometheus server URL * --> http://prometheus-server.prometheus.svc.cluster.local/ (this URL is same in K8s for all)
+Then click Save & test
+
+***Now click on Dashboards
+Import few Grafana dashboard and all dashboard id's are here ---> https://grafana.com/grafana/dashboards/   
+Dashboards --> New --> Import --> 6417 --> load --> select Prometheus --> import 
+
+11454 --> pv and pvc
+747 --> pod metrics
+1860 --> Node monitoring -- use this
+14623 --> k8s overview -- use this
+10907 --> monitor api-server
+
+
+
+****************************************************
+Monitoring EC2 instances with Promotheus and Grafana
+****************************************************
+
+Grafana: For visualizing metrics and logs.
+Loki: For aggregating and storing logs.
+Promtail: agent for logs
+Prometheus: For collecting metrics.
+Logstash: For log processing and forwarding.
+
+Prometheus = 9090
+graphana = 3000
+node exporter = 9100 
+loki = 3100/metrics
+
+***Launch 3 EC2 instance Amazon Linux 2023
+--> promograph
+--> node1
+--> node2
+
+***In promograph ec2 you need to install Prometheus, Grafana & NodeExpoter
+<------vi promo.sh------>
+
+#prometheus
+wget https://github.com/prometheus/prometheus/releases/download/v2.43.0/prometheus-2.43.0.linux-amd64.tar.gz
+tar -xf prometheus-2.43.0.linux-amd64.tar.gz
+sudo mv prometheus-2.43.0.linux-amd64/prometheus prometheus-2.43.0.linux-amd64/promtool /usr/local/bin
+
+#Now, We need to Create directories for configuration files and other prometheus data.
+
+sudo mkdir /etc/prometheus /var/lib/prometheus
+sudo mv prometheus-2.43.0.linux-amd64/console_libraries /etc/prometheus
+ls /etc/prometheus
+sudo rm -rvf prometheus-2.43.0.linux-amd64*
+
+#sudo vim /etc/hosts
+#3.101.56.72  worker-1
+#54.193.223.22 worker-2
+
+sudo cat <<EOF | sudo tee /etc/prometheus/prometheus.yml
+global:
+  scrape_interval: 10s
+
+scrape_configs:
+  - job_name: 'prometheus_metrics'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['localhost:9090']
+  - job_name: 'node_exporter_metrics'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['localhost:9100','worker-1:9100','worker-2:9100']
+EOF
+
+
+sudo useradd -rs /bin/false prometheus
+sudo chown -R prometheus: /etc/prometheus /var/lib/prometheus
+
+sudo ls -l /etc/prometheus/
+sudo cat <<EOF | tee /etc/systemd/system/prometheus.service
+[Unit]
+Description=Prometheus
+After=network.target
+
+[Service]
+User=prometheus
+Group=prometheus
+Type=simple
+ExecStart=/usr/local/bin/prometheus \
+    --config.file /etc/prometheus/prometheus.yml \
+    --storage.tsdb.path /var/lib/prometheus/ \
+    --web.console.templates=/etc/prometheus/consoles \
+    --web.console.libraries=/etc/prometheus/console_libraries
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo ls -l /etc/systemd/system/prometheus.service
+sudo systemctl daemon-reload && sudo systemctl enable prometheus
+sudo systemctl start prometheus && sudo systemctl status prometheus --no-pager
+
+#GRAFANA
+wget -q -O gpg.key https://rpm.grafana.com/gpg.key
+sudo rpm --import gpg.key
+sudo cat <<EOF | tee /etc/yum.repos.d/grafana.repo
+[grafana]
+name=grafana
+baseurl=https://rpm.grafana.com
+repo_gpgcheck=1
+enabled=1
+gpgcheck=1
+gpgkey=https://rpm.grafana.com/gpg.key
+sslverify=1
+sslcacert=/etc/pki/tls/certs/ca-bundle.crt
+EOF
+
+exclude=*beta*
+yum install grafana -y
+systemctl start grafana-server.service
+systemctl status grafana-server.service
+
+#NODEEXPORTER
+wget https://github.com/prometheus/node_exporter/releases/download/v1.5.0/node_exporter-1.5.0.linux-amd64.tar.gz
+tar -xf node_exporter-1.5.0.linux-amd64.tar.gz
+sudo mv node_exporter-1.5.0.linux-amd64/node_exporter  /usr/local/bin
+rm -rv node_exporter-1.5.0.linux-amd64*
+sudo useradd -rs /bin/false node_exporter
+
+sudo cat <<EOF | sudo tee /etc/systemd/system/node_exporter.service
+[Unit]
+Description=Node Exporter
+After=network.target
+
+[Service]
+User=node_exporter
+Group=node_exporter
+Type=simple
+ExecStart=/usr/local/bin/node_exporter
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo cat /etc/systemd/system/node_exporter.service
+sudo systemctl daemon-reload  && sudo systemctl enable node_exporter
+sudo systemctl start node_exporter.service && sudo systemctl status node_exporter.service --no-pager
+
+--> sh promo.sh
+
+Now check --->
+http://<promograph-public-IP>:9100 //node exporter 
+http://<promograph-public-IP>:9090 //Prometheus
+http://<promograph-public-IP>:3000 //Grafana, username: admin, password: admin
+
+***Go to Grafana Dashboard --> Add Data Source --> Select Prometheus
+Prometheus server URL * --> http://<promograph-public-IP>:9090
+Then click Save & test
+
+***Now click on Dashboards
+Import few Grafana dashboard and all dashboard id's are here ---> https://grafana.com/grafana/dashboards/   
+Dashboards --> New --> Import --> 6417 --> load --> select Prometheus --> import 
+
+11454 --> pv and pvc
+747 --> pod metrics
+1860 --> Node monitoring -- use this
+14623 --> k8s overview -- use this
+10907 --> monitor api-server
+
+***Install node-exporter in Node1 & Node2 EC2
+<------vi node.sh------>
+
+#NODEEXPORTER
+wget https://github.com/prometheus/node_exporter/releases/download/v1.5.0/node_exporter-1.5.0.linux-amd64.tar.gz
+tar -xf node_exporter-1.5.0.linux-amd64.tar.gz
+sudo mv node_exporter-1.5.0.linux-amd64/node_exporter  /usr/local/bin
+rm -rv node_exporter-1.5.0.linux-amd64*
+sudo useradd -rs /bin/false node_exporter
+
+sudo cat <<EOF | sudo tee /etc/systemd/system/node_exporter.service
+[Unit]
+Description=Node Exporter
+After=network.target
+
+[Service]
+User=node_exporter
+Group=node_exporter
+Type=simple
+ExecStart=/usr/local/bin/node_exporter
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo cat /etc/systemd/system/node_exporter.service
+sudo systemctl daemon-reload  && sudo systemctl enable node_exporter
+sudo systemctl start node_exporter.service && sudo systemctl status node_exporter.service --no-pager
+
+--> sh nose.sh
+
+***Now go to Prometheus web page and click
+Status(on top) --> Targets [ you can see worker nodes are down]
+
+--> cat /etc/prometheus/prometheus.yml   //this contains, workernode names, to add , go to /etc/hosts and add workernode IP's
+
+--> vi /etc/hosts
+<Node1 public-IP> worker-1
+<Node2 public-IP> worker-2
+
+***Now refresh the Prometheus web page and you can see nodes are UP
+
+
+
+*************************************
+LOG Monitoring with Loki and Promtail
+*************************************
+
+--> promograph EC2
+
+###Install docker and start
+
+yum install -y docker
+systemctl start docker
+
+###Create a directory for Grafana configs
+
+sudo mkdir grafana_configs
+cd grafana_configs
+
+###Download Loki Config
+
+sudo wget https://raw.githubusercontent.com/grafana/loki/v2.8.0/cmd/loki/loki-local-config.yaml -O loki-config.yaml
+
+###Download Promtail Config
+
+sudo wget https://raw.githubusercontent.com/grafana/loki/v2.8.0/clients/cmd/promtail/promtail-docker-config.yaml -O promtail-config.yaml
+
+###Run Loki with Docker
+
+docker run -d --name loki -v $(pwd):/mnt/config -p 3100:3100 grafana/loki:2.8.0 --config.file=/mnt/config/loki-config.yaml
+
+###RUN Run Promtail with docker
+
+docker run -d --name promtail -v $(pwd):/mnt/config -v /var/log:/var/log --link loki grafana/promtail:2.8.0 --config.file=/mnt/config/promtail-config.yaml
+
+Now check --->
+http://<promograph-public-IP>:3100/metrics //loki
+
+***Go to Grafana Dashboard --> Add a newData Source --> Select Loki
+Prometheus server URL * --> http://<promograph-public-IP>:3100
+Then click Save & test
+
+***Now click on Explore
+Select the Loki data source , label filters = jobs, varlogs --> run query
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
